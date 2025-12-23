@@ -17,22 +17,17 @@
 
 Особенности сборок
 ------------------
-- В репозитории есть два вида артефактов:
-  - `VenikCraft` — сборки, подписанные именем вашего сервера (по умолчанию таргет: MC 1.21.4, Java 21). Эти артефакты удобно класть в папку вашего сервера.
   - `MCOptimize` — публичные сборки для публикации (Modrinth/CurseForge/GitHub). Поддержка нескольких Java‑таргетов и профилей сборки для разных версий Minecraft.
-- Скрипт `build-venikcraft-all.ps1` собирает и складывает варианты `VenikCraft-<profile>.jar` в `dist\VenikCraft`.
 
 Как собрать
 -----------
 - Локальная сборка (основной):
   mvn -DskipTests clean package
 - Сборка конкретных профилей:
-  mvn -Pvenikcraft -DskipTests clean package  # ваша VenikCraft (Java21/MC1.21.4)
   mvn -Pmc-java8 -DskipTests clean package    # MCOptimize (Java8 target)
   mvn -Pmc-java17 -DskipTests clean package   # MCOptimize (Java17 target)
   mvn -Pmc-java21 -DskipTests clean package   # MCOptimize (Java21 target)
-- Для массовой сборки VenikCraft: запустите PowerShell `build-venikcraft-all.ps1`.
-
+  
 Лицензия: GPL v3 (см. `LICENSE`).
 
 Contributing
@@ -60,7 +55,6 @@ Includes:
 Builds
 ------
 - Two artifact families:
-  - `VenikCraft` — server-branded builds (default: MC 1.21.4, Java 21) for installing on your server.
   - `MCOptimize` — public builds for distribution. Multi-Java and multi-MC profiles available.
 - Use the provided `build-venikcraft-all.ps1` script to produce VenikCraft variants in `dist\VenikCraft`.
 
@@ -69,7 +63,6 @@ How to build
 - Default local build:
   mvn -DskipTests clean package
 - Build specific profiles:
-  mvn -Pvenikcraft -DskipTests clean package
   mvn -Pmc-java8 -DskipTests clean package
   mvn -Pmc-java17 -DskipTests clean package
   mvn -Pmc-java21 -DskipTests clean package

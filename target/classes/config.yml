@@ -1,0 +1,33 @@
+auth:
+  enabled: true
+  timeout-seconds: 60
+  salt: "venik-salt-please-change"
+  messages:
+    enter_password: "Введите пароль командой /login <пароль>"
+    registered: "Пароль установлен, вы авторизованы."
+    login_success: "Вы успешно авторизованы."
+    login_fail: "Неверный пароль."
+    kick_timeout: "Вы не авторизовались вовремя."
+  passwords: {}
+
+npc:
+  enabled: true
+  variants: "ModelA, ModelB, ModelC, ModelD"
+  list: {}
+
+chat:
+  message-rate-limit: 5 # max messages per window
+  rate-window-seconds: 10
+  duplicate-check: true
+
+protection:
+  ip-check: true
+
+tab:
+  enabled: true
+  update-interval: 20
+  show-tps: true
+  default-footer: "&7Сервер работает на Minecraft 1.21.4\n&fИгроков онлайн: {online}"
+  default-header: "&6&l=== VenikCraft ==="
+  custom-names: true
+  name-prefix: "&7[&eVIP&7] "

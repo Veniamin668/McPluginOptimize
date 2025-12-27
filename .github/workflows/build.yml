@@ -16,14 +16,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Установка зависимостей (JDK 17 + Maven + git)
         run: |
           pacman -Sy --noconfirm \
             jdk17-openjdk \
             maven \
-            git \
-            base-devel
+            base-devel \
+            wget || echo "pacman не смог установить всё"
+
+          if ! command -v git >/dev/null; then
+            echo "git не найден, скачиваю вручную..."
+            wget https://aur.archlinux.org/cgit/aur.git/snapshot/git.tar.gz
+            tar -xzf git.tar.gz
+            cd git
+            makepkg -si --noconfirm || echo "makepkg не сработал"
+            cd ..
+          else
+            echo "git уже установлен"
+          fi
 
       - name: Первая сборка (ошибки не ломают workflow)
         run: mvn clean package -U || true

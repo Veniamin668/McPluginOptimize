@@ -1,0 +1,249 @@
+name: VenikCraft
+main: ru.venik.optimize.VenikOptimize
+version: 1.0.0
+api-version: 1.21
+authors: ["venik"]
+load: STARTUP
+description: "VenikCraft — customized core for Venik server (MC 1.21.4)"
+
+############################################################
+# COMMANDS
+############################################################
+commands:
+
+  # AUTH
+  login:
+    description: Login to the server
+    usage: /login <password>
+    aliases: [l]
+
+  register:
+    description: Register an account password
+    usage: /register <password>
+    permission: venik.auth.register
+
+  # NPC
+  npc:
+    description: Manage NPCs
+    usage: /npc <create|remove|list>
+    permission: venik.npc.manage
+
+  # OPTIMIZATION
+  venikoptimize:
+    description: Optimization tools
+    usage: /venikoptimize <args>
+
+  # CASES
+  case:
+    description: Open or manage cases
+    usage: /case <open|give|list>
+
+  # DONATE
+  donate:
+    description: Donation system
+    usage: /donate <balance|add|remove>
+
+  # MENU
+  menu:
+    description: Open main menu
+    usage: /menu
+
+  # WARP
+  warp:
+    description: Warp system
+    usage: /warp <name|set|del|list>
+
+  # HOME
+  home:
+    description: Home system
+    usage: /home <set|del|list|tp>
+
+  # KIT
+  kit:
+    description: Kit system
+    usage: /kit <name|list>
+
+  # TELEPORT (TPA)
+  tpa:
+    description: Request teleport to player
+    usage: /tpa <player>
+
+  tpahere:
+    description: Request player to teleport to you
+    usage: /tpahere <player>
+
+  tpaccept:
+    description: Accept teleport request
+    usage: /tpaccept
+
+  tpdeny:
+    description: Deny teleport request
+    usage: /tpdeny
+
+  back:
+    description: Return to previous location
+    usage: /back
+
+  # MODERATOR COMMANDS
+  fly:
+    description: Toggle fly mode
+    usage: /fly
+
+  god:
+    description: Toggle god mode
+    usage: /god
+
+  vanish:
+    description: Toggle vanish mode
+    usage: /vanish
+    aliases: [v]
+
+  speed:
+    description: Change movement speed
+    usage: /speed <1-10>
+
+  heal:
+    description: Heal yourself
+    usage: /heal
+
+  feed:
+    description: Feed yourself
+    usage: /feed
+
+  # UTILITY
+  weather:
+    description: Change weather
+    usage: /weather <sun|rain|storm>
+
+  time:
+    description: Change time
+    usage: /time <day|night|noon|midnight>
+
+  clear:
+    description: Clear inventory
+    usage: /clear
+
+  ci:
+    description: Clear inventory (alias)
+    usage: /ci
+
+  repair:
+    description: Repair item
+    usage: /repair
+
+  enchant:
+    description: Enchant item
+    usage: /enchant <enchant> <level>
+
+  workbench:
+    description: Open crafting table
+    usage: /workbench
+    aliases: [craft]
+
+  enderchest:
+    description: Open ender chest
+    usage: /enderchest
+    aliases: [ec]
+
+  gamemode:
+    description: Change gamemode
+    usage: /gamemode <0|1|2|3>
+    aliases: [gm]
+
+  # ECONOMY
+  pay:
+    description: Pay money to player
+    usage: /pay <player> <amount>
+
+  balance:
+    description: Show your balance
+    usage: /balance
+    aliases: [bal, money]
+
+  baltop:
+    description: Show top balances
+    usage: /baltop
+    aliases: [top]
+
+  # TRADE
+  trade:
+    description: Trade with player
+    usage: /trade <player>
+
+  # BOUNTY
+  bounty:
+    description: Place bounty on player
+    usage: /bounty <player> <amount>
+
+  # SOCIAL
+  friend:
+    description: Friend system
+    usage: /friend <add|remove|accept|deny|list>
+    aliases: [f]
+
+  ignore:
+    description: Ignore player
+    usage: /ignore <player>
+
+  # MESSAGES
+  msg:
+    description: Private message
+    usage: /msg <player> <message>
+    aliases: [tell, w]
+
+  reply:
+    description: Reply to last message
+    usage: /reply <message>
+    aliases: [r]
+
+  # RANDOM TP
+  rtp:
+    description: Random teleport
+    usage: /rtp
+    aliases: [wild]
+
+  # LOBBY
+  lobby:
+    description: Teleport to lobby
+    usage: /lobby
+
+############################################################
+# PERMISSIONS
+############################################################
+permissions:
+
+  venik.auth.register:
+    description: Allow registering password
+    default: true
+
+  venik.npc.manage:
+    description: Allow managing NPCs
+    default: op
+
+  venik.optimize.*:
+    description: Full access to optimization tools
+    default: op
+
+  venik.moderator.*:
+    description: Moderator permissions
+    default: op
+
+  venik.trade.use:
+    description: Allow using trade system
+    default: true
+
+  venik.friend.use:
+    description: Allow using friend system
+    default: true
+
+  venik.ignore.use:
+    description: Allow ignoring players
+    default: true
+
+  venik.rtp.use:
+    description: Allow using RTP
+    default: true
+
+  venik.lobby.use:
+    description: Allow teleport to lobby
+    default: true

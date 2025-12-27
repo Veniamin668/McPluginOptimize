@@ -1,13 +1,9 @@
-name: VenikCraft & McOptimize build + auto-fix + release
+name: VenikCraft & McOptimize build (только при изменении workflow)
 
 on:
   push:
     paths:
-      - 'src/**'
-      - 'README.md'
       - '.github/workflows/**'
-      - 'fixes/**'
-  workflow_dispatch:
 
 jobs:
   build-release:
@@ -29,12 +25,69 @@ jobs:
             git \
             base-devel
 
-      # Первая пробная сборка — просто чтобы поймать ошибки
-      - name: Первая сборка (проверка, ошибки не ломают workflow)
+      - name: Первая сборка (ошибки не ломают workflow)
         run: mvn clean package -U || true
 
-      # Автофиксы через патчи, если есть папка fixes/
       - name: Применение автофиксов из папки fixes
+        run: |
+          if [ -d fixes ]; then
+            for patch in fixes/*.patch; do
+              [ -e "$patch" ] || continue
+              git apply "$patch" || echo "Не удалось применить патч $patch"
+            done
+          fi
+
+      - name: Коммит автофиксов
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "Auto-fix: исправления после патчей"
+            git push || echo "Push не удался"
+          fi
+
+      - name: Финальная сборка
+        run: mvn clean package -U
+
+      - name: Копирование VenikCraft.jar
+        run: |
+          mkdir -p out
+          cp target/*.jar out/VenikCraft.jar
+
+      - name: Копирование McOptimize.jar
+        run: |
+          mkdir -p out
+          cp target/*.jar out/McOptimize.jar
+
+      - name: Генерация CHANGELOG
+        run: |
+          echo "## Изменения (RU)" > CHANGELOG.md
+          git log --pretty=format:"- %s" -10 >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## Changes (EN)" >> CHANGELOG.md
+          git log --pretty=format:"- %s" -10 >> CHANGELOG.md
+
+      - name: Загрузка артефактов
+        uses: actions/upload-artifact@v4
+        with:
+          name: VenikCraft-and-McOptimize
+          path: |
+            out/VenikCraft.jar
+            out/McOptimize.jar
+            CHANGELOG.md
+
+      - name: Создание релиза
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Release ${{ github.run_number }}"
+          body_path: CHANGELOG.md
+          files: |
+            out/VenikCraft.jar
+            out/McOptimize.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      - name: Применение автофиксов из папки fixes
         run: |
           if [ -d fixes ]; then
             echo "Найдена папка fixes, применяю патчи..."

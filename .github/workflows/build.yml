@@ -1,0 +1,71 @@
+name: Arch Linux Dual Build with Auto Fix + Release
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'README.md'
+  workflow_dispatch: # запуск вручную
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+    - name: Получение репозитория
+      uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Установка зависимостей (JDK 17 + Maven)
+      run: |
+        pacman -Sy --noconfirm jdk17-openjdk maven git base-devel
+
+    - name: Первая сборка (проверка)
+      run: mvn clean package -U || true
+
+    - name: Применение автофиксов
+      run: |
+        if [ -d fixes ]; then
+          for patch in fixes/*.patch; do
+            echo "Применяю патч $patch"
+            git apply "$patch"
+          done
+        fi
+
+    - name: Коммит автофиксов
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        git add .
+        git commit -m "Автофикс ошибок компиляции" || echo "Нет изменений"
+        git push
+
+    - name: Повторная сборка
+      run: mvn clean package -U
+
+    - name: Копирование VenikCraft.jar (приватный билд)
+      run: cp target/*.jar VenikCraft.jar
+
+    - name: Копирование McOptimize.jar (общий билд)
+      run: cp target/*.jar McOptimize.jar
+
+    - name: Генерация changelog (RU + EN)
+      run: |
+        echo "## Изменения (RU)" > CHANGELOG.md
+        git log --pretty=format:"- %s" -10 >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "## Changes (EN)" >> CHANGELOG.md
+        git log --pretty=format:"- %s" -10 >> CHANGELOG.md
+
+    - name: Создание релиза
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: "Release ${{ github.run_number }}"
+        body_path: CHANGELOG.md
+        files: |
+          VenikCraft.jar
+          McOptimize.jar

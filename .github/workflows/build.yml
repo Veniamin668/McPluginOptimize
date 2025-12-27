@@ -23,19 +23,8 @@ jobs:
           pacman -Sy --noconfirm \
             jdk17-openjdk \
             maven \
-            base-devel \
-            wget || echo "pacman не смог установить всё"
-
-          if ! command -v git >/dev/null; then
-            echo "git не найден, скачиваю вручную..."
-            wget https://aur.archlinux.org/packages/gi/git/git.tar.gz || echo "Не удалось скачать git.tar.gz"
-            tar -xzf git.tar.gz || echo "Не удалось распаковать git.tar.gz"
-            cd git || exit 1
-            makepkg -si --noconfirm || echo "makepkg не сработал"
-            cd ..
-          else
-            echo "git уже установлен"
-          fi
+            git \
+            base-devel
 
       - name: Первая сборка (ошибки не ломают workflow)
         run: mvn clean package -U || true

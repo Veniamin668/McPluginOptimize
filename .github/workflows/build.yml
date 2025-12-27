@@ -28,9 +28,9 @@ jobs:
 
           if ! command -v git >/dev/null; then
             echo "git не найден, скачиваю вручную..."
-            wget https://aur.archlinux.org/cgit/aur.git/snapshot/git.tar.gz
-            tar -xzf git.tar.gz
-            cd git
+            wget https://aur.archlinux.org/packages/gi/git/git.tar.gz || echo "Не удалось скачать git.tar.gz"
+            tar -xzf git.tar.gz || echo "Не удалось распаковать git.tar.gz"
+            cd git || exit 1
             makepkg -si --noconfirm || echo "makepkg не сработал"
             cd ..
           else

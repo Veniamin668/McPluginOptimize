@@ -12,6 +12,12 @@ jobs:
       image: archlinux:latest
 
     steps:
+      - name: Внешний checkout (нужен для триггера)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
       - name: Установка зависимостей (JDK 17 + Maven + git)
         run: |
           pacman -Sy --noconfirm \
@@ -24,7 +30,6 @@ jobs:
         run: |
           rm -rf repo
           git clone https://github.com/${{ github.repository }} repo
-          cd repo
 
       - name: Первая сборка (ошибки не ломают workflow)
         working-directory: repo
@@ -51,9 +56,8 @@ jobs:
           if ! git diff --quiet; then
             git add .
             git commit -m "Auto-fix: исправления после патчей"
-            git push || echo "Push не удался"
           else
-            echo "Изменений нет, коммит не требуется"
+            echo "Изменений нет"
           fi
 
       - name: Финальная сборка
@@ -80,6 +84,19 @@ jobs:
           echo "" >> CHANGELOG.md
           echo "## Changes (EN)" >> CHANGELOG.md
           git log --pretty=format:"- %s" -10 >> CHANGELOG.md
+
+      - name: Пуш изменений обратно в репозиторий (source update)
+        working-directory: repo
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "Auto-update: обновление исходников после сборки"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+          else
+            echo "Нет изменений для пуша"
+          fi
 
       - name: Загрузка артефактов
         uses: actions/upload-artifact@v4

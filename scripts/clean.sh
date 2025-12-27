@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== CLEAN.SH: Очистка старых исходников ==="
+echo "=== CLEAN.SH: ОЧИСТКА СТАРЫХ ИСХОДНИКОВ ==="
 
 # Удаляем старые Java-файлы
 if [ -d src/main/java ]; then

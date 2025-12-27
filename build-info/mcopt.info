@@ -1,1 +1,0 @@
-﻿artifact=MCOptimize\nsupported-java=8,12,17,21\nsupported-mc=1.12.2-1.21.10\nnote=Use different maven profiles to build java-specific artifacts (mc-java8, mc-java17, mc-java21)

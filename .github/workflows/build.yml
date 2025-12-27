@@ -1,24 +1,26 @@
-name: VenikCraft & McOptimize build (workflow-only trigger)
+name: Build & Release
 
 on:
   push:
     paths:
-      - '.github/workflows/**'
+      - "src/**"
+      - "pom.xml"
+      - ".github/workflows/build.yml"
 
 jobs:
-  build-release:
+  build:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
 
     steps:
-      - name: Внешний checkout (нужен для триггера)
+      - name: Checkout (внешний)
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Установка зависимостей (JDK 17 + Maven + git)
+      - name: Install deps
         run: |
           pacman -Sy --noconfirm \
             jdk17-openjdk \
@@ -26,95 +28,43 @@ jobs:
             git \
             base-devel
 
-      - name: Ручное клонирование репозитория (для git внутри контейнера)
+      - name: Clone repo inside container
         run: |
           rm -rf repo
           git clone https://github.com/${{ github.repository }} repo
 
-      - name: Первая сборка (ошибки не ломают workflow)
-        working-directory: repo
-        run: mvn clean package -U || true
-
-      - name: Применение автофиксов из папки fixes
-        working-directory: repo
-        run: |
-          if [ -d fixes ]; then
-            for patch in fixes/*.patch; do
-              [ -e "$patch" ] || continue
-              echo "Применяю патч $patch"
-              git apply "$patch" || echo "Не удалось применить патч $patch"
-            done
-          else
-            echo "Папка fixes не найдена"
-          fi
-
-      - name: Коммит автофиксов (если есть изменения)
-        working-directory: repo
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          if ! git diff --quiet; then
-            git add .
-            git commit -m "Auto-fix: исправления после патчей"
-          else
-            echo "Изменений нет"
-          fi
-
-      - name: Финальная сборка
+      - name: Build
         working-directory: repo
         run: mvn clean package -U
 
-      - name: Копирование VenikCraft.jar
+      - name: Copy jars
         working-directory: repo
         run: |
           mkdir -p out
-          cp target/*.jar out/VenikCraft.jar
+          cp target/*.jar out/
 
-      - name: Копирование McOptimize.jar
-        working-directory: repo
-        run: |
-          mkdir -p out
-          cp target/*.jar out/McOptimize.jar
-
-      - name: Генерация CHANGELOG
-        working-directory: repo
-        run: |
-          echo "## Изменения (RU)" > CHANGELOG.md
-          git log --pretty=format:"- %s" -10 >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "## Changes (EN)" >> CHANGELOG.md
-          git log --pretty=format:"- %s" -10 >> CHANGELOG.md
-
-      - name: Пуш изменений обратно в репозиторий (source update)
+      - name: Commit auto-fixes (если есть)
         working-directory: repo
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
           if ! git diff --quiet; then
             git add .
-            git commit -m "Auto-update: обновление исходников после сборки"
+            git commit -m "Auto-fix: обновление исходников"
             git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
-          else
-            echo "Нет изменений для пуша"
           fi
 
-      - name: Загрузка артефактов
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: VenikCraft-and-McOptimize
-          path: |
-            repo/out/VenikCraft.jar
-            repo/out/McOptimize.jar
-            repo/CHANGELOG.md
+          name: build-output
+          path: repo/out/
 
-      - name: Создание релиза
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: "Release ${{ github.run_number }}"
-          body_path: repo/CHANGELOG.md
-          files: |
-            repo/out/VenikCraft.jar
-            repo/out/McOptimize.jar
+          files: repo/out/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

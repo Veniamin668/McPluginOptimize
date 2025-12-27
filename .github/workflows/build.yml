@@ -2,8 +2,7 @@ name: Build & AutoFix & Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -18,7 +17,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      # 2. Ставит зависимости (Java 8 + Maven)
+      # 2. Устанавливаем JDK 8 и Maven
       - name: Setup JDK 8
         uses: actions/setup-java@v4
         with:
@@ -38,65 +37,50 @@ jobs:
       - name: Clean old sources
         run: bash scripts/clean.sh
 
-      # 5. Применяем патчи из fixes/
+      # 5. Применяем патчи
       - name: Apply patches
         run: bash scripts/apply_patches.sh
 
-      # 6. Чиним pom.xml (Java 8 + Spigot 1.13.2)
+      # 6. Чиним pom.xml
       - name: Fix pom.xml
         run: bash scripts/fix_pom.sh
 
-      # 7. Генерируем базовые заглушки классов
+      # 7. Генерируем заглушки
       - name: Generate missing classes
         run: bash scripts/generate_missing_classes.sh
 
-      # 8. Первая попытка сборки (с логом)
+      # 8. Первая сборка с логом
       - name: First build attempt
         run: mvn -e -X -DskipTests package | tee maven_build.log || true
 
-      # 9. Базовый автофикс (классы/методы/конструкторы)
+      # 9. Базовый автофикс
       - name: Auto fix basic errors
-        run: |
-          if [ -f scripts/auto_fix_errors.sh ]; then
-            chmod +x scripts/auto_fix_errors.sh
-            bash scripts/auto_fix_errors.sh
-          else
-            echo "auto_fix_errors.sh не найден — пропускаю базовый автофикс."
-          fi
+        run: bash scripts/auto_fix_errors.sh || echo "basic fix skipped"
 
-      # 10. Продвинутый автофикс (advanced)
+      # 10. Продвинутый автофикс
       - name: Auto fix advanced errors
-        run: |
-          if [ -f scripts/auto_fix_advanced.sh ]; then
-            chmod +x scripts/auto_fix_advanced.sh
-            bash scripts/auto_fix_advanced.sh
-          else
-            echo "auto_fix_advanced.sh не найден — пропускаю advanced автофикс."
-          fi
+        run: bash scripts/auto_fix_advanced.sh || echo "advanced fix skipped"
 
-      # 11. Вторая попытка сборки, снова лог
+      # 11. Вторая сборка с логом
       - name: Second build attempt
         run: mvn -e -X -DskipTests package | tee maven_build.log || true
 
-      # 12. Второй проход продвинутого автофикса (на случай жёстких ошибок)
+      # 12. Повторный advanced автофикс
       - name: Auto fix advanced errors (second pass)
-        run: |
-          if [ -f scripts/auto_fix_advanced.sh ]; then
-            bash scripts/auto_fix_advanced.sh
-          fi
+        run: bash scripts/auto_fix_advanced.sh || echo "second advanced fix skipped"
 
-      # 13. Финальная сборка (должна уже пройти)
+      # 13. Финальная сборка
       - name: Final build
         run: mvn clean package -U
 
-      # 14. Пост-обработка: копирование JAR, CHANGELOG, git push
+      # 14. Пост-обработка: JAR, CHANGELOG, push
       - name: Post build tasks
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash scripts/post_build.sh
 
-      # 15. Заливаем артефакты (готовые JAR)
+      # 15. Загрузка артефактов
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

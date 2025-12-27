@@ -12,12 +12,6 @@ jobs:
       image: archlinux:latest
 
     steps:
-      - name: Получение репозитория
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
       - name: Установка зависимостей (JDK 17 + Maven + git)
         run: |
           pacman -Sy --noconfirm \
@@ -26,10 +20,18 @@ jobs:
             git \
             base-devel
 
+      - name: Ручное клонирование репозитория (для git внутри контейнера)
+        run: |
+          rm -rf repo
+          git clone https://github.com/${{ github.repository }} repo
+          cd repo
+
       - name: Первая сборка (ошибки не ломают workflow)
+        working-directory: repo
         run: mvn clean package -U || true
 
       - name: Применение автофиксов из папки fixes
+        working-directory: repo
         run: |
           if [ -d fixes ]; then
             for patch in fixes/*.patch; do
@@ -42,6 +44,7 @@ jobs:
           fi
 
       - name: Коммит автофиксов (если есть изменения)
+        working-directory: repo
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
@@ -54,19 +57,23 @@ jobs:
           fi
 
       - name: Финальная сборка
+        working-directory: repo
         run: mvn clean package -U
 
       - name: Копирование VenikCraft.jar
+        working-directory: repo
         run: |
           mkdir -p out
           cp target/*.jar out/VenikCraft.jar
 
       - name: Копирование McOptimize.jar
+        working-directory: repo
         run: |
           mkdir -p out
           cp target/*.jar out/McOptimize.jar
 
       - name: Генерация CHANGELOG
+        working-directory: repo
         run: |
           echo "## Изменения (RU)" > CHANGELOG.md
           git log --pretty=format:"- %s" -10 >> CHANGELOG.md
@@ -79,18 +86,18 @@ jobs:
         with:
           name: VenikCraft-and-McOptimize
           path: |
-            out/VenikCraft.jar
-            out/McOptimize.jar
-            CHANGELOG.md
+            repo/out/VenikCraft.jar
+            repo/out/McOptimize.jar
+            repo/CHANGELOG.md
 
       - name: Создание релиза
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
           name: "Release ${{ github.run_number }}"
-          body_path: CHANGELOG.md
+          body_path: repo/CHANGELOG.md
           files: |
-            out/VenikCraft.jar
-            out/McOptimize.jar
+            repo/out/VenikCraft.jar
+            repo/out/McOptimize.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

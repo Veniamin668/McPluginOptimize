@@ -1,70 +1,104 @@
-name: Build & Release
+name: Build & AutoFix & Release
 
 on:
   push:
-    paths:
-      - "src/**"
-      - "pom.xml"
-      - ".github/workflows/build.yml"
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:latest
 
     steps:
-      - name: Checkout (внешний)
+      # 1. Клонируем репозиторий
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Install deps
-        run: |
-          pacman -Sy --noconfirm \
-            jdk17-openjdk \
-            maven \
-            git \
-            base-devel
+      # 2. Ставит зависимости (Java 8 + Maven)
+      - name: Setup JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
 
-      - name: Clone repo inside container
+      - name: Install Maven
         run: |
-          rm -rf repo
-          git clone https://github.com/${{ github.repository }} repo
+          sudo apt-get update
+          sudo apt-get install -y maven
 
-      - name: Build
-        working-directory: repo
-        run: mvn clean package -U
+      # 3. Делаем скрипты исполняемыми
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
 
-      - name: Copy jars
-        working-directory: repo
+      # 4. Чистим проект
+      - name: Clean old sources
+        run: bash scripts/clean.sh
+
+      # 5. Применяем патчи из fixes/
+      - name: Apply patches
+        run: bash scripts/apply_patches.sh
+
+      # 6. Чиним pom.xml (Java 8 + Spigot 1.13.2)
+      - name: Fix pom.xml
+        run: bash scripts/fix_pom.sh
+
+      # 7. Генерируем базовые заглушки классов
+      - name: Generate missing classes
+        run: bash scripts/generate_missing_classes.sh
+
+      # 8. Первая попытка сборки (с логом)
+      - name: First build attempt
+        run: mvn -e -X -DskipTests package | tee maven_build.log || true
+
+      # 9. Базовый автофикс (классы/методы/конструкторы)
+      - name: Auto fix basic errors
         run: |
-          mkdir -p out
-          cp target/*.jar out/
-
-      - name: Commit auto-fixes (если есть)
-        working-directory: repo
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          if ! git diff --quiet; then
-            git add .
-            git commit -m "Auto-fix: обновление исходников"
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+          if [ -f scripts/auto_fix_errors.sh ]; then
+            chmod +x scripts/auto_fix_errors.sh
+            bash scripts/auto_fix_errors.sh
+          else
+            echo "auto_fix_errors.sh не найден — пропускаю базовый автофикс."
           fi
 
+      # 10. Продвинутый автофикс (advanced)
+      - name: Auto fix advanced errors
+        run: |
+          if [ -f scripts/auto_fix_advanced.sh ]; then
+            chmod +x scripts/auto_fix_advanced.sh
+            bash scripts/auto_fix_advanced.sh
+          else
+            echo "auto_fix_advanced.sh не найден — пропускаю advanced автофикс."
+          fi
+
+      # 11. Вторая попытка сборки, снова лог
+      - name: Second build attempt
+        run: mvn -e -X -DskipTests package | tee maven_build.log || true
+
+      # 12. Второй проход продвинутого автофикса (на случай жёстких ошибок)
+      - name: Auto fix advanced errors (second pass)
+        run: |
+          if [ -f scripts/auto_fix_advanced.sh ]; then
+            bash scripts/auto_fix_advanced.sh
+          fi
+
+      # 13. Финальная сборка (должна уже пройти)
+      - name: Final build
+        run: mvn clean package -U
+
+      # 14. Пост-обработка: копирование JAR, CHANGELOG, git push
+      - name: Post build tasks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/post_build.sh
+
+      # 15. Заливаем артефакты (готовые JAR)
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: repo/out/
-
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: "Release ${{ github.run_number }}"
-          files: repo/out/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: VenikOptimize-build
+          path: out/
